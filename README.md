@@ -1,20 +1,20 @@
-## Modern
+# Modern
 
 A module/mixin system written in the Lua programming language.
 
-### Use Case
+## Use Case
 
 A **module** can be thought of as a unit (of code), which is used to facilitate a more complex purpose (our program). Lua doesn't naturally come pre-built with the idea of a `class`, however it offers the power of `metatables` to imitate inheritance. This idea is the main idea behind `Modern`, but with a bit more.
 
-#### What's in the box?
+### What's in the box?
 
 **Inheritance** - all modules can be inherited from or inherit from another module.
 
-**Mixins **- extend your modules beyond their ability without affecting the inheritance chain.
+**Mixins** - extend your modules beyond their ability without affecting the inheritance chain.
 
 **Utility Functions** - check out the (API)[#API]!
 
-### Installation
+## Installation
 
 **Direct Download**
 
@@ -27,7 +27,7 @@ A **module** can be thought of as a unit (of code), which is used to facilitate 
 luarocks install modern
 ```
 
-### Getting Started
+## Getting Started
 
 1) Simply include `modern.modern` within a new file.
 
@@ -53,9 +53,9 @@ end
 
 > Notice: any functions with conflicting names will override it's parent's function with the same name. `Mixins`, on the other hand, will compound additional functions with conflicting names.
 
-### Further Usage
+## Further Usage
 
-#### Polymorphism
+### Polymorphism
 
 `Modern` allows you to create polymorphic relationships with other `Modules`.
 
@@ -66,7 +66,7 @@ local Orc    = Enemy:extend()  -- inherits everything from `Enemy`
 local Troll  = Enemy:extend()  -- inherits everything from `Enemy`
 ```
 
-#### Mixins
+### Mixins
 
 `Mixins` are added as arguments when calling `extend`. You can add another `Module` or a basic `table` as an argument. Any functions with conflicting names will compound so that they are all fired in sequence when called.
 
@@ -79,9 +79,9 @@ local Enemy  = Modern:extend(AABB, FSM)
 
 A use case for using `Mixins` would be adding a **F**inite **S**tate **M**achine to your `Module` (in this case `Enemy`). It doesn't make sense to inherit from `FSM`, but we want to include the functionality to update our `Enemy` states each game cycle. By adding `FSM` as a mixin expands the base `Module`'s functionality.
 
-### Examples
+## Examples
 
-#### Enemies
+### Enemies
 
 In this example we create a simple enemy hierarchy. Notice the call to the parent's `new` function: `self.__super:new(x, y)`. If not called, the parent's `new` would be skipped. Our `Gnome` module sets it's own attack power, which will override the `attack` value from `5`  to `10`.
 
@@ -115,7 +115,7 @@ $ lua
 > gnome:strike()           # Gnome strikes for 10
 ```
 
-#### Mixins
+### Mixins
 
 In this (silly) example we'll show an example using mixins and how conflicting function names are handled.
 
@@ -150,7 +150,7 @@ $ lua
 
 Notice how all 3 `foo` functions are called (in order of inclusion).
 
-#### Love2D
+### Love2D
 
 [Love2D](https://love2d.org/) is a fantastic framework to get you up and running with graphics, audio, and easy window configurations. This example shows how to use `Modern` to draw multiple layers using `Mixins`.
 
