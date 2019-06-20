@@ -2,10 +2,10 @@
 
 A module/mixin system written in the Lua programming language.
 
-* [Use Case](#Use Case)
+* [Use Case](#Use-Case)
 * [Installation](#Installation)
-* [Getting Started](#Getting Started)
-* [Further Usage](#Further Usage)
+* [Getting Started](#Getting-Started)
+* [Further Usage](#Further-Usage)
 * [Examples](#Examples)
 * [API](#API)
 * [License](#License)
