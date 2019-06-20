@@ -219,7 +219,7 @@ function love.draw()
 end
 ```
 
-![Screencap](https://github.com/skrolikowski/Modern/examples/Love2D/screencap.PNG)
+![Screencap](https://raw.githubusercontent.com/skrolikowski/Modern/master/examples/Love2D/screencap.PNG)
 
 ## API
 
