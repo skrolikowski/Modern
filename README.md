@@ -2,6 +2,14 @@
 
 A module/mixin system written in the Lua programming language.
 
+* [Use Case](#Use Case)
+* [Installation](#Installation)
+* [Getting Started](#Getting Started)
+* [Further Usage](#Further Usage)
+* [Examples](#Examples)
+* [API](#API)
+* [License](#License)
+
 ## Use Case
 
 A **module** can be thought of as a unit (of code), which is used to facilitate a more complex purpose (our program). Lua doesn't naturally come pre-built with the idea of a `class`, however it offers the power of `metatables` to imitate inheritance. This idea is the main idea behind `Modern`, but with a bit more.
@@ -12,7 +20,7 @@ A **module** can be thought of as a unit (of code), which is used to facilitate 
 
 **Mixins** - extend your modules beyond their ability without affecting the inheritance chain.
 
-**Utility Functions** - check out the (API)[#API]!
+**Utility Functions** - check out the [API](#API)
 
 ## Installation
 
