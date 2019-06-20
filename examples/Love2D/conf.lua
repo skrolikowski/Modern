@@ -1,4 +1,4 @@
-package.path = "../../../?.lua;" .. package.path
+package.path = "../../?.lua;" .. package.path
 
 function love.conf(t)
     io.stdout:setvbuf('no')

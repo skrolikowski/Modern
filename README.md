@@ -32,7 +32,7 @@ luarocks install modern
 1) Simply include `modern.modern` within a new file.
 
 ```lua
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 ```
 
 2) Extend from `Modern` to create a fresh module, inheriting all it's functionality.
@@ -60,7 +60,7 @@ end
 `Modern` allows you to create polymorphic relationships with other `Modules`.
 
 ```lua
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local Enemy  = Modern:extend() -- inherits everything from `Modern`
 local Orc    = Enemy:extend()  -- inherits everything from `Enemy`
 local Troll  = Enemy:extend()  -- inherits everything from `Enemy`
@@ -71,7 +71,7 @@ local Troll  = Enemy:extend()  -- inherits everything from `Enemy`
 `Mixins` are added as arguments when calling `extend`. You can add another `Module` or a basic `table` as an argument. Any functions with conflicting names will compound so that they are all fired in sequence when called.
 
 ```lua
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local AABB   = require 'mixins.AABB'
 local FSM    = require 'mixins.FSM'
 local Enemy  = Modern:extend(AABB, FSM)
@@ -86,7 +86,7 @@ A use case for using `Mixins` would be adding a **F**inite **S**tate **M**achine
 In this example we create a simple enemy hierarchy. Notice the call to the parent's `new` function: `self.__super:new(x, y)`. If not called, the parent's `new` would be skipped. Our `Gnome` module sets it's own attack power, which will override the `attack` value from `5`  to `10`.
 
 ```lua
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local Enemy  = Modern:extend()
 local Gnome  = Enemy:extend()
 
@@ -120,7 +120,7 @@ $ lua
 In this (silly) example we'll show an example using mixins and how conflicting function names are handled.
 
 ```lua
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local M1     = Modern:extend()
 local M2     = Modern:extend()
 local MM     = Modern:extend(M1, M2)
@@ -158,14 +158,14 @@ First we'll create a `Player` module including an `AABB` module, which provides 
 
 ```lua
 -- player.lua
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local AABB   = Modern:extend()
 local Player = Modern:extend(AABB)
 
 function Player:new(x, y, src)
     local image = love.graphics.newImage(src)
     local w, h  = image:getDimensions( )
-    
+
     self.x      = x
     self.y      = y
     self.image  = image
@@ -218,6 +218,8 @@ function love.draw()
     player:draw()
 end
 ```
+
+![Screencap](https://github.com/skrolikowski/Modern/examples/Love2D/screencap.PNG)
 
 ## API
 

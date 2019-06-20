@@ -1,6 +1,6 @@
-package.path = "../../../?.lua;" .. package.path
+package.path = "../../?.lua;" .. package.path
 
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local M1     = Modern:extend()
 local M2     = Modern:extend()
 local MM     = Modern:extend(M1, M2)

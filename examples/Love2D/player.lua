@@ -1,5 +1,5 @@
 -- player.lua
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local AABB   = Modern:extend()
 local Player = Modern:extend(AABB)
 

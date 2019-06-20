@@ -1,6 +1,6 @@
-package.path = "../../../?.lua;" .. package.path
+package.path = "../../?.lua;" .. package.path
 
-local Modern = require 'modern.modern'
+local Modern = require 'modern'
 local Enemy  = Modern:extend()
 local Gnome  = Enemy:extend()
 
