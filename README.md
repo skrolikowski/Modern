@@ -29,7 +29,7 @@ luarocks install modern
 
 ## Getting Started
 
-1) Simply include `modern.modern` within a new file.
+1) Simply include `modern` within a new file.
 
 ```lua
 local Modern = require 'modern'
