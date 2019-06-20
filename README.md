@@ -154,7 +154,7 @@ Notice how all 3 `foo` functions are called (in order of inclusion).
 
 [Love2D](https://love2d.org/) is a fantastic framework to get you up and running with graphics, audio, and easy window configurations. This example shows how to use `Modern` to draw multiple layers using `Mixins`.
 
-First we'll create a `Player` module including an `AABB` module, which provides axis-aligned bounding box functionality for collision, and in our example, debugging.
+**First** we'll create a `Player` module including an `AABB` module, which provides axis-aligned bounding box functionality for collision, and in our example, debugging.
 
 ```lua
 -- player.lua
@@ -202,7 +202,7 @@ end
 return Player
 ```
 
-Next, using Love2D we draw the `player` instance.
+**Next**, using Love2D we draw the `player` instance.
 
 ```lua
 -- main.lua
@@ -218,6 +218,8 @@ function love.draw()
     player:draw()
 end
 ```
+
+**Finally**, our reward!
 
 ![Screencap](https://raw.githubusercontent.com/skrolikowski/Modern/master/examples/Love2D/screencap.PNG)
 
