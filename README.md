@@ -249,6 +249,28 @@ end
 
 `__tostring()` - Visual version of `Module` showing properties.
 
+**`__tostring()` example:**
+```bash
+$ lua
+> print(MyExampleModule)
+# [#]  `Modern`
+# ------------
+# [-] name     string
+# [-] attack   number
+# [-] new      function
+# [+] strike   function
+# [-] draw     function
+# [^] new      function
+# [^] draw     function
+# [-] is       function
+# [-] copy     function
+# [-] clone    function
+# [-] has      function
+# [-] extend   function
+```
+
+> Note: `[-]` singular function, `[^]` - overridden function, `[+]` - compound function (mixins)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details

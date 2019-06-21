@@ -1,8 +1,12 @@
 local Modern = {}
 
-Modern.__name   = "Modern"
-Modern.__mixins = {}
-Modern.__index = Modern
+Modern.__name     = "Modern"
+Modern.__mixins   = {}
+Modern.__compound = {}
+Modern.__index    = Modern
+
+-- local functions
+local resolveName
 
 setmetatable(Modern, {
     __call = function(self)
@@ -83,7 +87,8 @@ end
     @return new `Module`
 ]]--
 function Modern:extend(...)
-    local obj = {}
+    local obj   = {}
+    local n,c,f = resolveName()
 
     table.foreach(self, function(key, value)
         if key:find('__') then
@@ -91,9 +96,11 @@ function Modern:extend(...)
         end
     end)
 
+    obj.__name   = n
     obj.__index  = obj
     obj.__super  = self
     obj.__mixins = {...}
+    obj:__mix()
     setmetatable(obj, self)
 
     return obj
@@ -106,41 +113,64 @@ end
      to `new` function of returning instance.
 
     @internal
-    @param  ... - arguments
-    @return Modern
+    @return void
 ]]--
-function Modern:__mix(mixins)
-    local properties = {}
+function Modern:__mix()
+    local functions = {}
 
-    -- Cycle through each "module"
-    --   and include any new properties.
-    table.foreach(mixins, function(_, mixin)
+    -- Cycle through each `Mixin` making a
+    --   record of any duplicate functions.
+    -- TODO: this is getting messy...
+    table.foreach(self.__mixins, function(_, mixin)
         table.foreach(mixin, function(key, value)
-            if not key:find('__') then
-                if properties[key] == nil then
-                    if self[key] then
-                        properties[key] = { self[key] }
-                    else
-                        properties[key] = {}
+            if type(value) == 'function' then
+                if key == "__new" then
+                    if functions['new'] == nil then
+                        functions['new'] = {}
                     end
+
+                    table.insert(functions['new'], value)
+                elseif string.sub(key, 1, 2) == "__" then
+                    -- continue..
+                elseif key == 'new' then
+                    -- continue..
+                else
+                    -- initialize..
+                    if functions[key] == nil then
+                        functions[key] = {}
+                    end
+
+                    table.insert(functions[key], value)
                 end
-                table.insert(properties[key], value)
             end
         end)
     end)
 
     -- compound function calls with same key
-    table.foreach(properties, function(key, value)
+    -- TODO: this is getting messy...
+    table.foreach(functions, function(key, value)
+        self.__compound[key] = {}
+
+        -- base function (if available)
+        if type(self[key]) == 'function' then
+            table.insert(self.__compound[key], self[key])
+        end
+
+        -- mixin functions
+        for _, func in pairs(value) do
+            table.insert(self.__compound[key], func)
+        end
+
         rawset(self, key, function(...)
-            local output = {}
-              -- collect return values
-            for _, func in pairs(value) do
+            local output = {}  -- collect return values
+
+            for _, func in pairs(self.__compound[key]) do
                 for _, out in pairs({ func(...) }) do
                     table.insert(output, out)
                 end
             end
-            -- return collected values
-            return unpack(output)
+
+            return unpack(output)  -- return collected values
         end)
     end)
 end
@@ -155,11 +185,11 @@ end
     @return new `Module` instance
 ]]--
 function Modern:__call(...)
-    local inst = setmetatable({}, self)
+    local inst  = setmetatable({}, self)
+    local n,c,f = resolveName()
 
-    inst.__name  = debug.getinfo(1, 'n').name
+    inst.__name  = n
     inst.__index = inst
-    inst:__mix(self.__mixins)
 
     if inst['new'] then
         inst:new(...)
@@ -181,22 +211,30 @@ function Modern:__tostring()
     local exists = {}
     local symbol
 
-    out = out .. "[#]" .. tab .. " `" .. self.__name .. "`" .. newln
-    out = out .. "------------" .. newln
+    out = out .. tab .. "Property" .. sep .. "Type" .. newln
+    out = out .. "--------------------------------" .. newln
 
     local function tostringHelper(mt, lvl)
         if mt == nil then return out end
         table.foreach(mt, function(key, value)
-            if not key:find('__') then
+            if string.sub(key, 0, 2) ~= "__" then
                 if exists[key] then
                     symbol = "^"
-               elseif self.__mixins[key] then
+               elseif self.__compound[key] and #self.__compound[key] > 1 then
                     symbol = "+"
                 else
                     symbol = "-"
                 end
 
-                out = out .. "[" .. symbol .. "]" .. tab .. key .. sep .. type(value) .. newln
+                if type(value) == 'boolean' then
+                    value = type(value) .. (value and 'true' or 'false')
+                elseif type(value) == 'string' or type(value) == 'number' then
+                    value = type(value) .. "(" .. value .. ")"
+                else
+                    value = type(value)
+                end
+
+                out = out .. "[" .. symbol .. "]" .. tab .. mt.__name .. sep .. key .. sep .. value .. newln
                 exists[key] = true
             end
         end)
@@ -205,6 +243,25 @@ function Modern:__tostring()
     end
 
     return tostringHelper(self, 0)
+end
+
+resolveName = function()
+    local pattern  = "(%w+)%s*=%s*(%w+)[:|.](%w+)"
+    local info     = debug.getinfo(3, "Sl")
+    local source   = string.gsub(info.source, "@", "")
+    local lineNum  = 0
+    local lineData = ""
+
+    for line in io.lines(source) do
+        lineNum  = lineNum + 1
+        lineData = line
+
+        if lineNum == info.currentline then
+            break
+        end
+    end
+
+    return string.match(lineData, pattern)
 end
 
 return Modern
