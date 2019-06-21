@@ -1,4 +1,4 @@
-# Modern
+![Modern](https://raw.githubusercontent.com/skrolikowski/Modern/master/brand.png)
 
 A module/mixin system written in the Lua programming language.
 
