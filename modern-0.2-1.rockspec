@@ -12,8 +12,6 @@ description = {
       inheritance. This idea is the main idea behind `Modern`, but with a bit more.
    ]],
    homepage = "https://github.com/skrolikowski/Modern#Modern",
-   issues_url = "https://github.com/skrolikowski/Modern/issues",
-   maintainer = "Shane Krolikowski",
    license = "MIT"
 }
 build = {
