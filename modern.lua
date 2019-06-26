@@ -10,7 +10,6 @@ local __compoundFunction,
       __getCompoundFunction,
       __setMixin,
       __getMixin,
-      __getMixinValue,
       __resolveName
 
 
