@@ -1,25 +1,9 @@
 -- player.lua
 local Modern = require 'modern'
-local AABB   = Modern:extend()
-local Player = Modern:extend(AABB)
 
-function Player:new(x, y, src)
-    local image = love.graphics.newImage(src)
-    local w, h  = image:getDimensions( )
+--
 
-    self.x      = x
-    self.y      = y
-    self.image  = image
-    self.scale  = 0.5
-    self.width  = w * self.scale
-    self.height = h * self.scale
-    self.debug  = false
-end
-
-function Player:draw()
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(self.image, self.x, self.y, 0, self.scale)
-end
+local AABB = Modern:extend()
 
 function AABB:new()
     -- using `Player` variables to create some more
@@ -38,6 +22,28 @@ function AABB:draw()
         love.graphics.setColor(1, 0, 0, 1)
         love.graphics.rectangle('line', self.x, self.y, self.width, self.height)
     end
+end
+
+--
+
+local Player = Modern:extend(AABB)
+
+function Player:new(x, y, src)
+    local image = love.graphics.newImage(src)
+    local w, h  = image:getDimensions( )
+
+    self.x      = x
+    self.y      = y
+    self.image  = image
+    self.scale  = 0.5
+    self.width  = w * self.scale
+    self.height = h * self.scale
+    self.debug  = false
+end
+
+function Player:draw()
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(self.image, self.x, self.y, 0, self.scale)
 end
 
 return Player

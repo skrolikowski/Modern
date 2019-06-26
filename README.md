@@ -5,7 +5,7 @@ A module/mixin system written in the Lua programming language.
 * [Use Case](#Use-Case)
 * [Installation](#Installation)
 * [Getting Started](#Getting-Started)
-* [Further Usage](#Further-Usage)
+* [Usage](#Usage)
 * [Examples](#Examples)
 * [API](#API)
 * [License](#License)
@@ -16,9 +16,9 @@ A **module** can be thought of as a unit (of code), which is used to facilitate 
 
 ### What's in the box?
 
-**Inheritance** - all modules can be inherited from or inherit from another module.
+**Inheritance** - any modules can extend any other module.
 
-**Mixins** - extend your modules beyond their ability without affecting the inheritance chain.
+**Mixins** - extend your modules beyond their ability without affecting the inheritance chain. Functions with the same name will compound into one function call.
 
 **Utility Functions** - check out the [API](#API)
 
@@ -59,9 +59,7 @@ function Player:new(x, y)
 end
 ```
 
-> Notice: any functions with conflicting names will override it's parent's function with the same name. `Mixins`, on the other hand, will compound additional functions with conflicting names.
-
-## Further Usage
+## Usage
 
 ### Polymorphism
 
@@ -87,39 +85,65 @@ local Enemy  = Modern:extend(AABB, FSM)
 
 A use case for using `Mixins` would be adding a **F**inite **S**tate **M**achine to your `Module` (in this case `Enemy`). It doesn't make sense to inherit from `FSM`, but we want to include the functionality to update our `Enemy` states each game cycle. By adding `FSM` as a mixin expands the base `Module`'s functionality.
 
+### Names & Namespaces
+
+Every `Module` is provided a name &  namespace upon creation (`__call()` and  `extend()`). The `__name` is just the variable name you assigned the `Module`, while the `__namespace` can be thought of as it's inheritance path. Here's an example:
+
+```lua
+local Modern = require 'modern'
+local Enemy  = Modern:extend()
+local Troll  = Enemy:extend()
+
+print(Troll.__name)       -- prints "Troll"
+print(Troll.__namespace)  -- prints "Modern\Enemy\Troll"
+```
+
 ## Examples
 
 ### Enemies
 
-In this example we create a simple enemy hierarchy. Notice the call to the parent's `new` function: `self.__super:new(x, y)`. If not called, the parent's `new` would be skipped. Our `Gnome` module sets it's own attack power, which will override the `attack` value from `5`  to `10`.
+In this example we create a simple enemy hierarchy. Notice the call to the parent's `new` function: `self:super():new(x, y)`. If not called, the parent's `new` would be skipped. Our `Gnome` module sets it's own attack power, which will override the `attack` value from `5`  to `10`.
 
 ```lua
 local Modern = require 'modern'
 local Enemy  = Modern:extend()
 local Gnome  = Enemy:extend()
 
-function Enemy:new(x, y)
-	self.x = x
-    self.y = y
+function Enemy:new(...)
+    local params = {...}
+    self.x = params[1] or 0
+    self.y = params[2] or 0
     self.attack = 5
+    print(self.__name .. ':new', ...)
 end
 
-function Gnome:new(x, y)
-	self.__super:new(x, y) -- call parent `new`
+function Gnome:new(...)
+    self:super():new(...) -- call parent `new`
     self.attack = 10
+    print(self.__name .. ':new', ...)
 end
 
 function Gnome:strike()
-	print(self.__name .. ' strikes for ' .. self.attack)
+    print(self.__name .. ' strikes for ' .. self.attack)
 end
+
+--
+
+local gnome = Gnome(100, 125)
+
+print(gnome.x, gnome.y, gnome.attack)
+
+gnome:strike()
 ```
 
 **Running the code...**
 
 ```bash
 $ lua
-> gnome = Gnome(100, 125)
+> gnome = Gnome(100, 125)  # Enemy:new  100, 125
+                           # Gnome:new  100, 125
 > print(gnome.x, gnome.y)  # 100, 125
+> print(gnome.attack)      # 10
 > gnome:strike()           # Gnome strikes for 10
 ```
 
@@ -129,34 +153,44 @@ In this (silly) example we'll show an example using mixins and how conflicting f
 
 ```lua
 local Modern = require 'modern'
-local M1     = Modern:extend()
-local M2     = Modern:extend()
-local MM     = Modern:extend(M1, M2)
 
-function M1:foo()
-    print(self.__name .. ' foo!')
-end
+--
 
-function M2:foo()
-    print(self.__name .. ' bar!')
-end
+local M1 = Modern:extend()
 
-function MM:foo()
-    print(self.__name .. ' baz!')
-end
+function M1:new() print('M1:new') end
+function M1:foo() print('M1:foo') end
+
+--
+
+local M2 = Modern:extend()
+
+function M2:new() print('M2:new') end
+function M2:foo() print('M2:foo') end
+
+--
+
+local MM = Modern:extend(M1, M2)
+
+function MM:new() print('MM:new') end
+function MM:foo() print('MM:foo') end
 ```
 
 **Running the code...**
 
 ```bash
 $ lua
-> mm = MM(100, 125)
-> mm:foo()  # MM foo!
-            # MM bar!
-            # MM baz!
+> mm = MM() # MM:new
+            # M1:new
+            # M2:new
+> mm:foo()  # MM:foo
+            # M1:foo
+            # M2:foo
 ```
 
 Notice how all 3 `foo` functions are called (in order of inclusion).
+
+> **Important:** All `Mixins` and their functions must be declared before adding them via the `extend` function. This is due to how Lua's `__index` and `__newindex` metamethods work ([see here](https://stackoverflow.com/a/18026617)).
 
 ### Love2D
 
@@ -167,26 +201,10 @@ Notice how all 3 `foo` functions are called (in order of inclusion).
 ```lua
 -- player.lua
 local Modern = require 'modern'
-local AABB   = Modern:extend()
-local Player = Modern:extend(AABB)
 
-function Player:new(x, y, src)
-    local image = love.graphics.newImage(src)
-    local w, h  = image:getDimensions( )
+--
 
-    self.x      = x
-    self.y      = y
-    self.image  = image
-    self.scale  = 0.5
-    self.width  = w * self.scale
-    self.height = h * self.scale
-    self.debug  = false
-end
-
-function Player:draw()
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(self.image, self:center())
-end
+local AABB = Modern:extend()
 
 function AABB:new()
     -- using `Player` variables to create some more
@@ -205,6 +223,28 @@ function AABB:draw()
         love.graphics.setColor(1, 0, 0, 1)
         love.graphics.draw(self.image, self.x, self.y, self.width, self.height)
     end
+end
+
+--
+
+local Player = Modern:extend(AABB)
+
+function Player:new(x, y, src)
+    local image = love.graphics.newImage(src)
+    local w, h  = image:getDimensions( )
+
+    self.x      = x
+    self.y      = y
+    self.image  = image
+    self.scale  = 0.5
+    self.width  = w * self.scale
+    self.height = h * self.scale
+    self.debug  = false
+end
+
+function Player:draw()
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(self.image, self:center())
 end
 
 return Player
@@ -241,35 +281,46 @@ end
 
 `has(obj)` - Checks `Module` for inclusion of a `Mixin`.
 
+`super(obj)` - Fetch super `Module` of current `Module`.
+
 `copy()` - shallow copy (using `rawset`) of `Module`.
 
 `clone()` - Deep copy (including `metatables`) of `Module`.
 
 `extend(...)` - Extend from another `Module` inheriting all it's goodies.
 
-`__tostring()` - Visual version of `Module` showing properties.
+#### Notable Metamethods
 
-**`__tostring()` example:**
+`__tostring()` - Visualization  of `Module` showing properties.
+
 ```bash
 $ lua
 > print(MyExampleModule)
-# [#]  `Modern`
-# ------------
-# [-] name     string
-# [-] attack   number
-# [-] new      function
-# [+] strike   function
-# [-] draw     function
-# [^] new      function
-# [^] draw     function
-# [-] is       function
-# [-] copy     function
-# [-] clone    function
-# [-] has      function
-# [-] extend   function
+# ---------------------------------------------------------------------------
+# | [ ]  | Module  | Namespace         | DataType  | Key     | Value        |
+---------------------------------------------------------------------------
+# | [-]  | Orc     | Modern\Enemy\Orc  | number    | attack  | 100          |
+# | [-]  | Orc     | Modern\Enemy\Orc  | function  | new     | <function>   |
+# | [-]  | Orc     | Modern\Enemy\Orc  | number    | y       | 2            |
+# | [-]  | Orc     | Modern\Enemy\Orc  | number    | x       | 1            |
+# | [-]  | Orc     | Modern\Enemy\Orc  | number    | health  | 100          |
+# | [^]  | Enemy   | Modern\Enemy      | function  | new     | <function>   |
+# | [-]  | Modern  | Modern            | function  | extend  | <function>   |
+# | [-]  | Modern  | Modern            | function  | copy    | <function>   |
+# | [-]  | Modern  | Modern            | function  | super   | <function>   |
+# | [-]  | Modern  | Modern            | function  | clone   | <function>   |
+# | [-]  | Modern  | Modern            | function  | has     | <function>   |
+# | [-]  | Modern  | Modern            | function  | is      | <function>   |
+# | [+]  | Health  | Modern\Health     | function  | new     | <function>   |
+# | [+]  | Health  | Modern\Health     | function  | heal    | <function>   |
+# | [+]  | Health  | Modern\Health     | function  | hit     | <function>   |
+# | [+]  | Combat  | Modern\Combat     | function  | defend  | <function>   |
+# | [+]  | Combat  | Modern\Combat     | function  | new     | <function>   |
+# | [+]  | Combat  | Modern\Combat     | function  | hit     | <function>   |
+# ---------------------------------------------------------------------------
 ```
 
-> Note: `[-]` singular function, `[^]` - overridden function, `[+]` - compound function (mixins)
+> Note: `[-]` normal property, `[^]` - overridden property, `[+]` - mixin function
 
 ## License
 

@@ -1,5 +1,5 @@
 package = "Modern"
-version = "0.1-1"
+version = "0.2-1"
 source = {
    url = "git+ssh://git@github.com/skrolikowski/Modern.git"
 }
@@ -12,6 +12,8 @@ description = {
       inheritance. This idea is the main idea behind `Modern`, but with a bit more.
    ]],
    homepage = "https://github.com/skrolikowski/Modern#Modern",
+   issues_url = "https://github.com/skrolikowski/Modern/issues",
+   maintainer = "Shane Krolikowski",
    license = "MIT"
 }
 build = {
