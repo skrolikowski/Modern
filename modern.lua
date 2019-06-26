@@ -1,12 +1,18 @@
 local Modern = {}
 
-Modern.__name     = "Modern"
-Modern.__mixins   = {}
-Modern.__compound = {}
-Modern.__index    = Modern
+Modern.__index     = Modern
+Modern.__name      = "Modern"
+Modern.__namespace = "Modern"
 
 -- local functions
-local resolveName
+local __compoundFunction,
+      __setCompoundFunction,
+      __getCompoundFunction,
+      __setMixin,
+      __getMixin,
+      __getMixinValue,
+      __resolveName
+
 
 setmetatable(Modern, {
     __call = function(self)
@@ -20,6 +26,7 @@ setmetatable(Modern, {
         print("------------")
     end
 })
+
 
 --[[
     Checks if `Module` is a (or inherits from)...
@@ -40,6 +47,7 @@ function Modern:is(obj)
     return false
 end
 
+
 --[[
     Checks `Module` for inclusion of a `Mixin`.
 
@@ -54,6 +62,7 @@ function Modern:has(obj)
 
     return false
 end
+
 
 --[[
     Make shallow copy of `Module`.
@@ -70,6 +79,7 @@ function Modern:copy()
     return copy
 end
 
+
 --[[
     Make deep copy of `Module`.
 
@@ -79,101 +89,80 @@ function Modern:clone()
     return setmetatable(self, getmetatable(self))
 end
 
+
 --[[
-    Extend from another `Module` inheriting
-      all it's goodies
+    Extend `Module`.
 
     @param  table(...) - `Mixins`
     @return new `Module`
 ]]--
 function Modern:extend(...)
-    local obj   = {}
-    local n,c,f = resolveName()
+    local obj  = {}
+    local name = __resolveName()
 
     table.foreach(self, function(key, value)
-        if key:find('__') then
+        if string.sub(key, 0, 2) == "__" then
             rawset(obj, key, value)
         end
     end)
 
-    obj.__name   = n
-    obj.__index  = obj
-    obj.__super  = self
-    obj.__mixins = {...}
-    obj:__mix()
-    setmetatable(obj, self)
+    -- overrides
+    obj.__name      = name
+    obj.__namespace = self.__namespace .. "\\" .. name
+    obj.__index     = obj
 
-    return obj
+    -- append mixins
+    table.foreach({...}, function(_, mixin)
+        __setMixin(obj, mixin)
+    end)
+
+    return setmetatable(obj, self)
 end
+
 
 --[[
-    Return new instance of Object called.
+    Intercept incoming new function indexes
+      in order to handle "compound functions"
 
-    Arguments passed in will be redirected
-     to `new` function of returning instance.
+    Intercept incoming new index request.
+    Check for existing mixins.
 
-    @internal
-    @return void
+    @param   string(key)      - index name
+    @param   function(value)  - index value
+    @return  void
 ]]--
-function Modern:__mix()
-    local functions = {}
+function Modern:__newindex(key, value)
+    rawset(self, key, value)  -- set index normally
 
-    -- Cycle through each `Mixin` making a
-    --   record of any duplicate functions.
-    -- TODO: this is getting messy...
-    table.foreach(self.__mixins, function(_, mixin)
-        table.foreach(mixin, function(key, value)
-            if type(value) == 'function' then
-                if key == "__new" then
-                    if functions['new'] == nil then
-                        functions['new'] = {}
-                    end
-
-                    table.insert(functions['new'], value)
-                elseif string.sub(key, 1, 2) == "__" then
-                    -- continue..
-                elseif key == 'new' then
-                    -- continue..
-                else
-                    -- initialize..
-                    if functions[key] == nil then
-                        functions[key] = {}
-                    end
-
-                    table.insert(functions[key], value)
-                end
-            end
-        end)
-    end)
-
-    -- compound function calls with same key
-    -- TODO: this is getting messy...
-    table.foreach(functions, function(key, value)
-        self.__compound[key] = {}
-
-        -- base function (if available)
-        if type(self[key]) == 'function' then
-            table.insert(self.__compound[key], self[key])
+    if type(value) == 'function' then
+        if self.__module ~= nil then
+            -- notify parent module of new index
+            self.__module:__updateIndex(key, value)
+        elseif self.__mixins ~= nil then
+            -- compound mixin functions, if any
+            __compoundFunction(self, key)
         end
-
-        -- mixin functions
-        for _, func in pairs(value) do
-            table.insert(self.__compound[key], func)
-        end
-
-        rawset(self, key, function(...)
-            local output = {}  -- collect return values
-
-            for _, func in pairs(self.__compound[key]) do
-                for _, out in pairs({ func(...) }) do
-                    table.insert(output, out)
-                end
-            end
-
-            return unpack(output)  -- return collected values
-        end)
-    end)
+    end
 end
+
+
+--[[
+    Update index.
+    Remix index, if an mixins
+
+    Intercept incoming new index request.
+    Check for existing mixins.
+
+    @param   string(key)      - index name
+    @param   function(value)  - index value
+    @return  void
+]]--
+function Modern:__updateIndex(key, value)
+    if self.__mixins ~= nil then
+        __compoundFunction(self, key)
+    end
+end
+
 
 --[[
     Return new instance of Object called.
@@ -185,10 +174,10 @@ end
     @return new `Module` instance
 ]]--
 function Modern:__call(...)
-    local inst  = setmetatable({}, self)
-    local n,c,f = resolveName()
+    local inst = setmetatable({}, self)
+    local name = __resolveName()
 
-    inst.__name  = n
+    inst.__name  = name
     inst.__index = inst
 
     if inst['new'] then
@@ -198,55 +187,231 @@ function Modern:__call(...)
     return inst
 end
 
+
 --[[
     Return string representation of Object.
 
-    @return string(out)
+    @return string
 ]]--
 function Modern:__tostring()
-    local out    = ""
-    local newln  = "\n"
-    local tab    = "\t"
-    local sep    = string.rep(tab, 2)
-    local exists = {}
-    local symbol
-
-    out = out .. tab .. "Property" .. sep .. "Type" .. newln
-    out = out .. "--------------------------------" .. newln
-
-    local function tostringHelper(mt, lvl)
-        if mt == nil then return out end
+    local tableData = {{ '[ ]', 'Module', 'Namespace', 'DataType', 'Key', 'Value' }}
+    local tableWidth = 0
+    local colData = {}
+    local overrides = {}
+    local padding = 2
+    local max = math.max
+    local buildTableData
+    local rowWidth = function(row)
+        local width = #tableData[1] * 2 + 2
+        table.foreach(row, function(_, value)
+            width = width + value
+        end)
+        tableWidth = max(tableWidth, width)
+    end
+    local colWidths = function(row)
+        table.foreach(row, function(idx, value)
+            colData[idx] = max(colData[idx] or 0, #value + padding)
+        end)
+        rowWidth(colData)
+    end
+    local resolveSymbol = function(key)
+        if not overrides[key] then
+            overrides[key] = true
+            return '-'
+        end
+        return '^'
+    end
+    local resolveValue = function(dataType, value)
+        if     dataType == 'string'  then return '"' .. value .. '"'
+        elseif dataType == 'number'  then return "" .. value
+        elseif dataType == 'boolean' then return value and 'true' or 'false'
+        else                              return '<' .. dataType .. '>'
+        end
+    end
+    local addRowToTableData = function(mt, key, value)
+        if string.sub(key, 0, 2) ~= '__' then
+            local dataType = type(value)
+            local symbol = mt.__module and '+' or resolveSymbol(key)
+            local value = resolveValue(dataType, value)
+            local row = {
+                '[' .. symbol .. ']', mt.__name, mt.__namespace, dataType, key, value
+            }
+            colWidths(row)
+            table.insert(tableData, row)
+        end
+    end
+    buildTableData = function(mt)
+        if mt == nil then return end
         table.foreach(mt, function(key, value)
-            if string.sub(key, 0, 2) ~= "__" then
-                if exists[key] then
-                    symbol = "^"
-               elseif self.__compound[key] and #self.__compound[key] > 1 then
-                    symbol = "+"
-                else
-                    symbol = "-"
-                end
-
-                if type(value) == 'boolean' then
-                    value = type(value) .. (value and 'true' or 'false')
-                elseif type(value) == 'string' or type(value) == 'number' then
-                    value = type(value) .. "(" .. value .. ")"
-                else
-                    value = type(value)
-                end
-
-                out = out .. "[" .. symbol .. "]" .. tab .. mt.__name .. sep .. key .. sep .. value .. newln
-                exists[key] = true
+            addRowToTableData(mt, key, value)
+        end)
+        return buildTableData(getmetatable(mt))
+    end
+    local buildMixinData = function(mt)
+        table.foreach(mt.__mixins, function(_, mixin)
+            table.foreach(mixin, function(key, value)
+                addRowToTableData(mixin, key, value)
+            end)
+        end)
+    end
+    local display = function()
+        local out = string.rep('-', tableWidth) .. '\n'
+        table.foreach(tableData, function(idx, row)
+            table.foreach(row, function(key, value)
+                out = out .. '| ' .. value .. string.rep(' ', colData[key] - #value)
+            end)
+            out = out .. ' |\n'
+            if idx == 1 then
+                out = out .. string.rep('-', tableWidth) .. '\n'
             end
         end)
-
-        return tostringHelper(getmetatable(mt), lvl + 1)
+        return out .. string.rep('-', tableWidth)
     end
 
-    return tostringHelper(self, 0)
+    buildTableData(self)
+    buildMixinData(self)
+
+    return display()
 end
 
-resolveName = function()
-    local pattern  = "(%w+)%s*=%s*(%w+)[:|.](%w+)"
+
+--[[
+    Return parent module.
+
+    @return table
+]]--
+function Modern:__super()
+    return getmetatable(self)
+end
+
+
+------------------------------------------
+-- Local functions
+------------------------------------------
+
+
+--[[
+    Build compound function, if identical
+      function names found in `__mixins`.
+
+    @internal
+    @param   Module(obj)     - current Module
+    @param   string(key)     - index name
+    @param   function(value) - index value
+    @return  void
+]]--
+__compoundFunction = function(obj, key, value)
+    table.foreach(obj.__mixins, function(_, mixin)
+        if type(obj.__mixins[mixin.__name][key]) == 'function' then
+            -- mixin includes matching func name
+            __setCompoundFunction(obj, key, obj.__mixins[mixin.__name][key])
+        end
+    end)
+
+    if obj.__compound[key] ~= nil then
+        rawset(obj, key, __getCompoundFunction(obj, key))
+    end
+end
+
+
+--[[
+    Set compound function helper.
+    Groups functions with same names together.
+
+    @internal
+    @param   Module(obj)     - current Module
+    @param   string(key)     - index name
+    @param   function(value) - index value
+    @return  void
+]]--
+__setCompoundFunction = function(obj, key, value)
+    if obj.__compound == nil then
+        obj.__compound = {}
+    end
+
+    if obj.__compound[key] == nil then
+        -- add this modules func first..
+        obj.__compound[key] = { rawget(obj, key) }
+    end
+
+    -- append mixin func..
+    table.insert(obj.__compound[key], value)
+end
+
+
+--[[
+    Get compound function helper.
+    Calls group of functions with same name.
+
+    Notes:
+    - Returns comma delimited results (if available).
+
+    @internal
+    @param   Module(obj)     - current Module
+    @param   string(key)     - index name
+    @param   function(value) - index value
+    @return  mixed
+]]--
+__getCompoundFunction = function(obj, key)
+    return function(...)
+        local output = {}  -- collect return values
+
+        for _, func in pairs(obj.__compound[key]) do
+            for _, out in pairs({ func(...) }) do
+                table.insert(output, out)
+            end
+        end
+
+        return unpack(output)  -- return collected values
+    end
+end
+
+
+--[[
+    Load mixin for this Module.
+    Mixin will also have a link back to this Module.
+
+    @internal
+    @param   Module(obj)  - current Module
+    @param   Module(key)  - mixin to add
+    @return  void
+]]--
+__setMixin = function(obj, mixin)
+    assert(mixin.__name ~= nil, "Please make sure your table has a `__name` property (e.g. `{ __name = 'Example' }`)")
+
+    if not obj.__mixins then
+        obj.__mixins = {}
+    end
+
+    obj.__mixins[mixin.__name] = mixin
+    mixin.__module = obj
+end
+
+
+--[[
+    Get mixin by name, included in this Module.
+    If not found, will error out.
+
+    @internal
+    @param   Module(obj)  - current Module
+    @param   Module(key)  - mixin to add
+    @return  void
+]]--
+__getMixin = function(obj, mixinName)
+    return obj.__mixins[mixinName] or
+           error('Mixin with name `' .. mixinName .. '` does not exist.')
+end
+
+
+--[[
+    Returns resolved names of code in line
+        calling originating function.
+
+    @internal
+    @return string(name, caller, func)
+]]--
+__resolveName = function()
+    local pattern  = "(%w+)%s*=%s*([%w]+)[:|.]?([%w]*)%((.*)%)"
     local info     = debug.getinfo(3, "Sl")
     local source   = string.gsub(info.source, "@", "")
     local lineNum  = 0
@@ -263,5 +428,6 @@ resolveName = function()
 
     return string.match(lineData, pattern)
 end
+
 
 return Modern
