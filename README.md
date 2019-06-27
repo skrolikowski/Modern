@@ -102,49 +102,45 @@ print(Troll.__namespace)  -- prints "Modern\Enemy\Troll"
 
 ### Enemies
 
-In this example we create a simple enemy hierarchy. Notice the call to the parent's `new` function: `self:super():new(x, y)`. If not called, the parent's `new` would be skipped. Our `Gnome` module sets it's own attack power, which will override the `attack` value from `5`  to `10`.
+In this example we create a simple enemy hierarchy. Notice the call to the parent's `new` function: `self.__super.new(self, x, y)`. If not called, the parent's `new` would be skipped. Our `Gnome` module sets it's own attack power, which will override the `attack` value from `5`  to `10`.
 
 ```lua
 local Modern = require 'modern'
-local Enemy  = Modern:extend()
-local Gnome  = Enemy:extend()
 
-function Enemy:new(...)
-    local params = {...}
-    self.x = params[1] or 0
-    self.y = params[2] or 0
-    self.attack = 5
-    print(self.__name .. ':new', ...)
+--
+
+local Enemy = Modern:extend()
+
+function Enemy:new(x, y)
+    self.x = x
+    self.y = y
+    print('Enemy:new', x, y)
 end
 
-function Gnome:new(...)
-    self:super():new(...) -- call parent `new`
-    self.attack = 10
-    print(self.__name .. ':new', ...)
+--
+
+local Gnome = Enemy:extend()
+
+function Gnome:new(x, y, attack)
+    self.__super.new(self, x, y) -- call parent `new`
+    self.attack = attack
+    print(self.__name .. ':new', x, y, attack)
 end
 
 function Gnome:strike()
     print(self.__name .. ' strikes for ' .. self.attack)
 end
-
---
-
-local gnome = Gnome(100, 125)
-
-print(gnome.x, gnome.y, gnome.attack)
-
-gnome:strike()
 ```
 
 **Running the code...**
 
 ```bash
 $ lua
-> gnome = Gnome(100, 125)  # Enemy:new  100, 125
-                           # Gnome:new  100, 125
-> print(gnome.x, gnome.y)  # 100, 125
-> print(gnome.attack)      # 10
-> gnome:strike()           # Gnome strikes for 10
+> gnome = Gnome(70, 80, 10)  # Enemy:new  70, 80
+                             # Gnome:new  70, 80, 10
+> print(gnome.x, gnome.y)    # 70, 80
+> print(gnome.attack)        # 10
+> gnome:strike()             # Gnome strikes for 10
 ```
 
 ### Mixins

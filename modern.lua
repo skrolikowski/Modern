@@ -1,4 +1,11 @@
-local Modern = {}
+local Modern = {},
+      __addMixin,
+      __addMixer,
+      __getMixin,
+      __resolveName,
+      __setIndex,
+      __getIndex
+
 
 Modern.__name      = "Modern"
 Modern.__namespace = "Modern"
@@ -9,13 +16,6 @@ Modern.__index     = function(self, key)
     return Modern[key] or error('Cannot find property `' .. self.__name .. '.' .. key .. '`')
 end
 
--- local functions
-local __addMixin,
-      __addMixer,
-      __getMixin,
-      __resolveName,
-      __setIndex,
-      __getIndex
 
 setmetatable(Modern, {
     __call = function(self)
@@ -118,6 +118,7 @@ function Modern:extend(...)
 
     -- overrides!
     obj.__name      = name
+    obj.__super     = self
     obj.__namespace = self.__namespace .. "\\" .. name
     obj.__index     = function(self, key)
         -- check for special cases
@@ -146,13 +147,7 @@ end
     @return  void
 ]]--
 function Modern:__newindex(key, value)
-    if self.__module ~= false then
-        -- I'm a mixin!
-        __setIndex(self.__module, key, value)
-    else
-        -- I'm a module!
-        __setIndex(self, key, value)
-    end
+    __setIndex(self, key, value)
 end
 
 
@@ -166,11 +161,9 @@ end
     @return new `Module` instance
 ]]--
 function Modern:__call(...)
-    local inst = self:clone()
+    local inst = setmetatable({}, self)
 
-    inst.__index = inst
-
-    if rawget(inst, 'new') then
+    if inst['new'] then
         inst:new(...)
     end
 
@@ -369,13 +362,15 @@ end
 ]]--
 __setIndex = function(obj, key, value)
     if type(value) == 'function' then
-        local funcs = { value }
+        local mixers = rawget(obj, '__mixers')
 
-        table.foreach(obj.__mixers[key] or {}, function(_, func)
-            table.insert(funcs, func)
-        end)
+        if mixers and mixers[key] then
+            local funcs = { value }
 
-        if #funcs > 1 then
+            table.foreach(obj.__mixers[key] or {}, function(_, func)
+                table.insert(funcs, func)
+            end)
+
             value = function(...)
                 local output = {}  -- collect return values
 
@@ -401,15 +396,16 @@ end
     @internal
     @param  Module(obj)
     @param  string(key)
-    @param  mixed(value)
     @return void
 ]]--
-__getIndex = function(obj, key, value)
-    if obj.__mixers[key] ~= nil then
+__getIndex = function(obj, key)
+    local mixers = rawget(obj, '__mixers')
+
+    if mixers and mixers[key] ~= nil then
         return function(...)
             local output = {}  -- collect return values
 
-            for _, func in pairs(obj.__mixers[key]) do
+            for _, func in pairs(mixers[key]) do
                 for _, out in pairs({ func(...) }) do
                     table.insert(output, out)
                 end
@@ -418,6 +414,8 @@ __getIndex = function(obj, key, value)
             return unpack(output)  -- return collected values
         end
     end
+
+    return rawget(obj, key)
 end
 
 
