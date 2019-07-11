@@ -1,5 +1,6 @@
 package.path = "../../?.lua;" .. package.path
-
+dbg = require 'debugger'
+dbg.auto_where = 2
 
 local Modern = require 'modern'
 
@@ -29,9 +30,11 @@ end
 
 --
 
-local gnome = Gnome(70, 80, 10)
+local g1 = Gnome(70, 80, 10)
+local g2 = Gnome(40, 50, 5)
 
-print(gnome.x, gnome.y)
-print(gnome.attack)
+print(g1.x, g1.y, g1.attack)
+print(g2.x, g2.y, g2.attack)
 
-gnome:strike()
+g1:strike()
+g2:strike()
