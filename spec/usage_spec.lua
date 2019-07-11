@@ -18,23 +18,23 @@ describe('Modern - Usage Tests', function()
         function _C:z()   return '_CZ'  end
         --
         CA = _C:extend()
-        function CA:new()
-            self.v = self.m + self.n
+        function CA:__new()
+            self.v = self.__module.m + self.__module.n
         end
         function CA:a()   return 'CAA' end
         function CA:x()   return 'CAX' end
         --
         CB = _C:extend()
-        function CB:new()
+        function CB:__new()
             self:super('new')
-            self.w = self.m - self.n
+            self.w = self.__module.m - self.__module.n
         end
         function CB:b()   return 'CBB' end
         function CB:y()   return 'CBY' end
         --
         CC = CB:extend()
-        function CC:new()
-            self.w = self.m - self.n
+        function CC:__new()
+            self.w = self.__module.m - self.__module.n
         end
         function CC:c() return 'CCC' end
         function CC:z() return 'CCZ' end

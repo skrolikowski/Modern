@@ -58,7 +58,7 @@ describe('Modern - Reflection Tests', function()
         assert.same(CB.__module, MA)
         assert.same(CC.__module, MA)
         assert.same(CD.__module, MB)
-        assert.is_false(CA.__module)
+        assert.is_false(MA.__module)
     end)
 
     it('should recognize mixins only assigned to self', function()

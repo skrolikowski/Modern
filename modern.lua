@@ -262,6 +262,7 @@ function Modern:extend(...)
     obj.__name      = name
     obj.__super     = self
     obj.__namespace = self.__namespace .. "\\" .. name
+    obj.__module    = false
     obj.__mixins    = {}
     obj.__index     = function(self, key)
         -- print('__getIndex', name, key, rawget(obj, key))
@@ -289,16 +290,20 @@ end
 ]]--
 function Modern:__call(...)
     local inst = setmetatable({}, self)
-
-    -- copy metamethods..
-    -- table.foreach(self, function(key, value)
-    --     if string.sub(key, 0, 2) == "__" then
-    --         rawset(inst, key, value)
-    --     end
-    -- end)
+    inst.__module = false
 
     if inst['new'] then
-        inst:new(...)
+        if rawget(self, 'new') then
+            self['new'](inst, ...)
+        end
+
+        -- Invoke mixin `new`
+        for _, mixin in pairs(inst.__mixins) do
+            if mixin['__new'] then
+                mixin.__module = inst
+                mixin['__new'](mixin, ...)
+            end
+        end
     end
 
     return inst
