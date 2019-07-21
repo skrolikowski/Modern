@@ -76,8 +76,7 @@ describe('Modern - Usage Tests', function()
         assert.is.equals(ma.n, 3)
         assert.is.equals(ma.w, -1)     -- from module's mixin
         assert.is.equals(ma.v, 5)      -- from module's mixin
-        --TODO:
-        -- assert.is.equals(ma._v1, 42)   -- from super-mixin!
+        assert.is.equals(ma._v1, 42)   -- from super-mixin!
     end)
 
     it('should be able to check equality based on namespace.', function()
